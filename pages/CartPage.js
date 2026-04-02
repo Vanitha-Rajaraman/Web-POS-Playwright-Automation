@@ -19,10 +19,10 @@ class CartPage extends BasePage {
     this.portInput = page.locator('#react-select-4-input');
     this.usbPortText = page.getByText('USB port', { exact: true });
     this.selectButton = page.getByRole('button', { name: 'SELECT' });
-    this.totalButton = page.getByRole('button', { name: '(F1) Total ₹' });
+    this.totalButton = page.getByRole('button', { name: /\(F1\)\s*(Total|PAY)/i });
     this.enterAmountText = page.getByText('Enter amount');
-    this.amountInput = page.getByRole('spinbutton');
-    this.payButton = page.getByRole('button', { name: '(F2) PAY ₹' });
+    this.amountInput = page.getByRole('spinbutton').last();
+    this.payButton = page.getByRole('button', { name: /\(F2\)\s*PAY/i });    
     this.continueButton = page.getByRole('button', { name: 'CONTINUE' });
     this.skipButton = page.getByRole('button', { name: 'Skip' });
   }
@@ -86,7 +86,15 @@ class CartPage extends BasePage {
     await this.click(this.payButton);
   }
 
+ 
+
   async completePayment() {
+    const continueVisible = await this.continueButton.isVisible().catch(() => false);
+    if (!continueVisible) {
+      await this.page.keyboard.press('Enter').catch(() => {});
+      await this.page.waitForTimeout(1000);
+    }
+
     await this.click(this.continueButton);
     await this.click(this.skipButton);
   }

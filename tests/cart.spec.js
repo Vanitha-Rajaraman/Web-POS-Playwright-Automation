@@ -8,6 +8,37 @@ const { getRuntimeConfig } = require('../utils/runtimeConfig');
 const SESSION_STATE_PATH = path.join(__dirname, '..', 'fixtures', 'auth', 'sessionState.json');
 const SESSION_STORAGE_PATH = path.join(__dirname, '..', 'fixtures', 'auth', 'sessionStorage.json');
 const runtimeConfig = getRuntimeConfig();
+const mockUsbChooser = () => {
+  const makeAbortError = () => {
+    try {
+      return new DOMException('User cancelled the requestDevice() chooser.', 'NotFoundError');
+    } catch {
+      const error = new Error('User cancelled the requestDevice() chooser.');
+      error.name = 'NotFoundError';
+      return error;
+    }
+  };
+
+  const stub = async () => {
+    throw makeAbortError();
+  };
+
+  if (!('usb' in navigator) || !navigator.usb) {
+    Object.defineProperty(navigator, 'usb', {
+      configurable: true,
+      value: {
+        requestDevice: stub,
+        getDevices: async () => [],
+      },
+    });
+    return;
+  }
+
+  navigator.usb.requestDevice = stub;
+  if (!navigator.usb.getDevices) {
+    navigator.usb.getDevices = async () => [];
+  }
+};
 
 test.describe.configure({ mode: 'serial' });
 
@@ -31,6 +62,7 @@ test.describe('Cart Page', () => {
       viewport: null,
       storageState: SESSION_STATE_PATH,
     });
+    await context.addInitScript(mockUsbChooser);
     await context.addInitScript(storage => {
       for (const [key, value] of Object.entries(storage)) {
         window.sessionStorage.setItem(key, value);

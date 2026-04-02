@@ -1,12 +1,11 @@
 const { defineConfig, devices } = require('@playwright/test');
-const path = require('path');
 
 module.exports = defineConfig({
   testDir: './tests',
   timeout: 120000,
   retries: 0,
-  workers: 1,                         // 1 worker = single browser worker
-  globalSetup: require.resolve('./fixtures/global.setup.js'),
+  workers: 1,
+  fullyParallel: false,
   reporter: [
     ['list'],
     ['html', { open: 'never', outputFolder: 'reports/html' }],
@@ -24,33 +23,11 @@ module.exports = defineConfig({
   },
   projects: [
     {
-      name: 'login',
-      testMatch: /login\.spec\.js/,
-      use: { 
+      name: 'chrome',
+      use: {
         ...devices['Desktop Chrome'],
-        viewport: null,  // maximize
+        viewport: null,
         deviceScaleFactor: undefined,
-        storageState: undefined 
-      },
-    },
-    {
-      name: 'session',
-      testMatch: /session\.spec\.js/,
-      use: { 
-        ...devices['Desktop Chrome'],
-        viewport: null,  // maximize
-        deviceScaleFactor: undefined,
-        storageState: path.join(__dirname, 'fixtures', 'auth', 'storageState.json') 
-      },
-    },
-    {
-      name: 'cart',
-      testMatch: /cart\.spec\.js/,
-      use: { 
-        ...devices['Desktop Chrome'],
-        viewport: null,  // maximize
-        deviceScaleFactor: undefined,
-        storageState: path.join(__dirname, 'fixtures', 'auth', 'sessionState.json') 
       },
     },
   ],

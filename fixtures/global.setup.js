@@ -2,7 +2,6 @@ const { chromium } = require('@playwright/test');
 const path = require('path');
 const fs = require('fs');
 const LoginPage = require('../pages/LoginPage');
-const SessionPage = require('../pages/SessionPage');
 const CartPage = require('../pages/CartPage');
 
 async function globalSetup() {
@@ -51,7 +50,6 @@ async function globalSetup() {
   const page = await context.newPage();
 
   const loginPage = new LoginPage(page);
-  const sessionPage = new SessionPage(page);
   const cartPage = new CartPage(page);
 
   try {
@@ -61,10 +59,10 @@ async function globalSetup() {
 
     await context.storageState({ path: LOGIN_STATE_PATH });
 
-    await sessionPage.selectLocation();
-    await sessionPage.startSession('1000');
-    await sessionPage.loginAsManager();
-    await sessionPage.goToCart();
+    await loginPage.selectLocation();
+    await loginPage.startSession('1000');
+    await loginPage.loginAsManager();
+    await loginPage.goToCart();
     await cartPage.assertCartLoaded();
 
     await context.storageState({ path: CART_STATE_PATH });

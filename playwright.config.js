@@ -1,4 +1,7 @@
 const { defineConfig, devices } = require('@playwright/test');
+const { getRuntimeConfig } = require('./utils/runtimeConfig');
+
+const runtimeConfig = getRuntimeConfig();
 
 module.exports = defineConfig({
   testDir: './tests',
@@ -11,7 +14,7 @@ module.exports = defineConfig({
     ['html', { open: 'never', outputFolder: 'reports/html' }],
   ],
   use: {
-    baseURL: 'https://upcoming-pos.palletnow.co/',
+    baseURL: runtimeConfig.baseURL,
     headless: true,
     viewport: null,  // null = remove viewport limit, use screen size (maximized)
     screenshot: 'only-on-failure',

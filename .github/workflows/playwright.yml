@@ -1,0 +1,61 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      CI: true
+      BASE_URL: ${{ secrets.POS_BASE_URL }}
+      POS_MOBILE: ${{ secrets.POS_MOBILE }}
+      POS_PIN: ${{ secrets.POS_PIN }}
+      POS_CASH_AMOUNT: ${{ secrets.POS_CASH_AMOUNT }}
+      POS_CUSTOMER_MOBILE: ${{ secrets.POS_CUSTOMER_MOBILE }}
+      POS_CUSTOMER_NAME: ${{ secrets.POS_CUSTOMER_NAME }}
+      POS_PRODUCT_KEYWORD: ${{ secrets.POS_PRODUCT_KEYWORD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chrome
+
+      - name: Run Playwright tests
+        run: npm test
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report
+          path: reports/html
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 14

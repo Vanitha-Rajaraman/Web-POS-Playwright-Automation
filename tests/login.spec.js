@@ -50,6 +50,8 @@ test.describe('Login And Session Setup', () => {
 
       if (locationOutcome === 'home') {
         await loginPage.assertHomeGreetingVisible();
+        // await cartPage.openCart();
+        // await cartPage.assertCartLoaded();
       } else {
         await loginPage.assertStartSessionVisible();
         await loginPage.startSession(runtimeConfig.session.cashAmount);

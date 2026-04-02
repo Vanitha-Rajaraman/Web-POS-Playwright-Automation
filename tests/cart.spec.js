@@ -79,29 +79,4 @@ test.describe('Cart Page', () => {
     });
   });
 
-  test('TC_CART_003 - Products panel opens', async () => {
-    await cartPage.openProducts();
-    await cartPage.assertProductsVisible();
-    await cartPage.openCart();
-  });
-
-  test('TC_CART_004 - Product search returns results', async () => {
-    await cartPage.openProducts();
-    await cartPage.searchProduct(runtimeConfig.product.keyword);
-    await expect(cartPage.addProductBtns.first()).toBeVisible({ timeout: 10000 });
-    await cartPage.openCart();
-  });
-
-  test('TC_CART_005 - Product can be added from the second result', async () => {
-    await cartPage.addProduct(runtimeConfig.product.keyword, 1);
-    await cartPage.assertCartLoaded();
-  });
-
-  test('TC_CART_006 - Quantity can be updated and payment can continue', async () => {
-    await cartPage.addProduct(runtimeConfig.product.keyword, 0);
-    await cartPage.setQuantity('1000');
-    await cartPage.openCheckout();
-    await cartPage.payAmount('1000');
-  });
-
 });

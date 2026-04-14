@@ -7,6 +7,16 @@ on:
       - master
   pull_request:
   workflow_dispatch:
+    inputs:
+      suite:
+        description: Test suite to run
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - login
+          - cart
 
 jobs:
   test:
@@ -39,8 +49,25 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chrome
 
+      - name: Select test command
+        shell: bash
+        run: |
+          suite="${{ github.event.inputs.suite || 'all' }}"
+          case "$suite" in
+            login)
+              echo "TEST_COMMAND=npm run test:login" >> "$GITHUB_ENV"
+              ;;
+            cart)
+              echo "TEST_COMMAND=npm run test:cart" >> "$GITHUB_ENV"
+              ;;
+            *)
+              echo "TEST_COMMAND=npm test" >> "$GITHUB_ENV"
+              ;;
+          esac
+          echo "Selected suite: $suite"
+
       - name: Run Playwright tests
-        run: npm test
+        run: ${{ env.TEST_COMMAND }}
 
       - name: Upload HTML report
         if: always()

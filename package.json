@@ -2,16 +2,19 @@
   "name": "pallet-pos-playwright",
   "version": "1.0.0",
   "scripts": {
-    "test":         "playwright test tests/login.spec.js tests/cart.spec.js",
-    "test:app":     "playwright test tests/login.spec.js tests/cart.spec.js",
-    "test:login":   "playwright test tests/login.spec.js",
-    "test:cart":    "playwright test tests/cart.spec.js",
-    "test:headed":  "cross-env HEADLESS=false playwright test tests/login.spec.js tests/cart.spec.js",
-    "test:debug":   "playwright test tests/login.spec.js tests/cart.spec.js --debug",
-    "report":       "playwright show-report reports/html"
+    "test": "playwright test tests/login.spec.js tests/cart.spec.js",
+    "test:app": "playwright test tests/login.spec.js tests/cart.spec.js",
+    "test:login": "playwright test tests/login.spec.js",
+    "test:cart": "playwright test tests/cart.spec.js",
+    "test:headed": "cross-env HEADLESS=false playwright test tests/login.spec.js tests/cart.spec.js",
+    "test:debug": "playwright test tests/login.spec.js tests/cart.spec.js --debug",
+    "report": "playwright show-report reports/html"
   },
   "devDependencies": {
     "@playwright/test": "^1.43.0",
     "cross-env": "^7.0.3"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
   }
 }

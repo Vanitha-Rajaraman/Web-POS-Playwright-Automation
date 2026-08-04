@@ -17,6 +17,11 @@ on:
           - all
           - login
           - cart
+          - custom
+      test_paths:
+        description: Comma-separated spec paths under tests/ (used when suite=custom)
+        required: false
+        default: ""
 
 jobs:
   test:
@@ -53,6 +58,33 @@ jobs:
         shell: bash
         run: |
           suite="${{ github.event.inputs.suite || 'all' }}"
+          raw_test_paths="${{ github.event.inputs.test_paths || '' }}"
+
+          normalize_test_path() {
+            local raw_path="$1"
+            local trimmed_path
+            trimmed_path="$(echo "$raw_path" | xargs)"
+
+            if [[ -z "$trimmed_path" ]]; then
+              return 0
+            fi
+
+            if [[ ! "$trimmed_path" =~ ^tests/[A-Za-z0-9._/-]+\.spec\.(js|ts)$ ]]; then
+              echo "Invalid test path: $trimmed_path"
+              exit 1
+            fi
+
+            VALIDATED_TEST_PATHS+=("$trimmed_path")
+          }
+
+          VALIDATED_TEST_PATHS=()
+          if [[ -n "$raw_test_paths" ]]; then
+            IFS=',' read -ra REQUESTED_PATHS <<< "$raw_test_paths"
+            for test_path in "${REQUESTED_PATHS[@]}"; do
+              normalize_test_path "$test_path"
+            done
+          fi
+
           case "$suite" in
             login)
               echo "TEST_COMMAND=npm run test:login" >> "$GITHUB_ENV"
@@ -60,11 +92,23 @@ jobs:
             cart)
               echo "TEST_COMMAND=npm run test:cart" >> "$GITHUB_ENV"
               ;;
+            custom)
+              if [[ ${#VALIDATED_TEST_PATHS[@]} -eq 0 ]]; then
+                echo "suite=custom requires at least one valid test path."
+                exit 1
+              fi
+
+              printf -v joined_test_paths '%q ' "${VALIDATED_TEST_PATHS[@]}"
+              echo "TEST_COMMAND=npx playwright test ${joined_test_paths% }" >> "$GITHUB_ENV"
+              ;;
             *)
               echo "TEST_COMMAND=npm test" >> "$GITHUB_ENV"
               ;;
           esac
           echo "Selected suite: $suite"
+          if [[ ${#VALIDATED_TEST_PATHS[@]} -gt 0 ]]; then
+            echo "Selected test paths: ${VALIDATED_TEST_PATHS[*]}"
+          fi
 
       - name: Run Playwright tests
         run: ${{ env.TEST_COMMAND }}

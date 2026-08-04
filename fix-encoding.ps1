@@ -1,4 +1,4 @@
-# fix-encoding.ps1
+s# fix-encoding.ps1
 # Run this script ONCE from your project root in PowerShell:
 #   cd "C:\Users\PalletNow\Playwright Web POS Automation"
 #   .\fix-encoding.ps1

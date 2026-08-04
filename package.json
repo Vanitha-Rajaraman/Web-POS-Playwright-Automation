@@ -1,14 +1,15 @@
 {
   "name": "pallet-pos-playwright",
   "version": "1.0.0",
-  "scripts": {
+  "scripts": {06/04/2026	Vanitha	Web RMS	New Issue	Windows	Chrome	Upcoming-Stage	Restaurant	FINE DINE-IN	Masters	Leave Policy	Based on the 'no of days' defined, 'Max leave that can be taken' needs to be handled	Sakthivel	P1	Closed								https://drive.google.com/file/d/1vA6dnCh3wVQbFmPhLSPtQq8R16Kky4ru/view?usp=sharing																													
     "test": "playwright test tests/login.spec.js tests/cart.spec.js",
     "test:app": "playwright test tests/login.spec.js tests/cart.spec.js",
     "test:login": "playwright test tests/login.spec.js",
     "test:cart": "playwright test tests/cart.spec.js",
     "test:headed": "cross-env HEADLESS=false playwright test tests/login.spec.js tests/cart.spec.js",
     "test:debug": "playwright test tests/login.spec.js tests/cart.spec.js --debug",
-    "report": "playwright show-report reports/html"
+    "report": "playwright show-report reports/html",
+    "slack:webhook": "node slack/slack-command-server.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.43.0",

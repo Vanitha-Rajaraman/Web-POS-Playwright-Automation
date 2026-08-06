@@ -1,5 +1,19 @@
 node_modules/
-reports/
-test-results/
-playwright-report/
-debug-terminal.png
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+
+# Env
+.env
+.env.local
+
+# Build
+dist/
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/

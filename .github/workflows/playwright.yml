@@ -2,131 +2,57 @@ name: Playwright Tests
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main]
   pull_request:
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      suite:
-        description: Test suite to run
-        required: true
-        default: all
-        type: choice
-        options:
-          - all
-          - login
-          - cart
-          - custom
-      test_paths:
-        description: Comma-separated spec paths under tests/ (used when suite=custom)
-        required: false
-        default: ""
+  schedule:
+    # 11:00 PM IST daily (IST = UTC+5:30)
+    - cron: '30 17 * * *'
 
 jobs:
   test:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-
     env:
-      CI: true
-      BASE_URL: ${{ secrets.POS_BASE_URL }}
-      POS_MOBILE: ${{ secrets.POS_MOBILE }}
-      POS_PIN: ${{ secrets.POS_PIN }}
-      POS_CASH_AMOUNT: ${{ secrets.POS_CASH_AMOUNT }}
-      POS_CUSTOMER_MOBILE: ${{ secrets.POS_CUSTOMER_MOBILE }}
-      POS_CUSTOMER_NAME: ${{ secrets.POS_CUSTOMER_NAME }}
-      POS_PRODUCT_KEYWORD: ${{ secrets.POS_PRODUCT_KEYWORD }}
-
+      BASE_URL: ${{ secrets.BASE_URL }}
+      API_BASE_URL: ${{ secrets.API_BASE_URL }}
+      MOBILE_NUMBER: ${{ secrets.MOBILE_NUMBER }}
+      PIN: ${{ secrets.PIN }}
+      ORG_NAME: ${{ secrets.ORG_NAME }}
+      LOCATION_NAME: ${{ secrets.LOCATION_NAME }}
+      RESTAURANT_ORG_NAME: ${{ secrets.RESTAURANT_ORG_NAME }}
+      DINEIN_LOCATION_NAME: ${{ secrets.DINEIN_LOCATION_NAME }}
+      QSR_LOCATION_NAME: ${{ secrets.QSR_LOCATION_NAME }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chrome
-
-      - name: Select test command
-        shell: bash
-        run: |
-          suite="${{ github.event.inputs.suite || 'all' }}"
-          raw_test_paths="${{ github.event.inputs.test_paths || '' }}"
-
-          normalize_test_path() {
-            local raw_path="$1"
-            local trimmed_path
-            trimmed_path="$(echo "$raw_path" | xargs)"
-
-            if [[ -z "$trimmed_path" ]]; then
-              return 0
-            fi
-
-            if [[ ! "$trimmed_path" =~ ^tests/[A-Za-z0-9._/-]+\.spec\.(js|ts)$ ]]; then
-              echo "Invalid test path: $trimmed_path"
-              exit 1
-            fi
-
-            VALIDATED_TEST_PATHS+=("$trimmed_path")
-          }
-
-          VALIDATED_TEST_PATHS=()
-          if [[ -n "$raw_test_paths" ]]; then
-            IFS=',' read -ra REQUESTED_PATHS <<< "$raw_test_paths"
-            for test_path in "${REQUESTED_PATHS[@]}"; do
-              normalize_test_path "$test_path"
-            done
-          fi
-
-          case "$suite" in
-            login)
-              echo "TEST_COMMAND=npm run test:login" >> "$GITHUB_ENV"
-              ;;
-            cart)
-              echo "TEST_COMMAND=npm run test:cart" >> "$GITHUB_ENV"
-              ;;
-            custom)
-              if [[ ${#VALIDATED_TEST_PATHS[@]} -eq 0 ]]; then
-                echo "suite=custom requires at least one valid test path."
-                exit 1
-              fi
-
-              printf -v joined_test_paths '%q ' "${VALIDATED_TEST_PATHS[@]}"
-              echo "TEST_COMMAND=npx playwright test ${joined_test_paths% }" >> "$GITHUB_ENV"
-              ;;
-            *)
-              echo "TEST_COMMAND=npm test" >> "$GITHUB_ENV"
-              ;;
-          esac
-          echo "Selected suite: $suite"
-          if [[ ${#VALIDATED_TEST_PATHS[@]} -gt 0 ]]; then
-            echo "Selected test paths: ${VALIDATED_TEST_PATHS[*]}"
-          fi
+        run: npx playwright install --with-deps
 
       - name: Run Playwright tests
-        run: ${{ env.TEST_COMMAND }}
+        run: npx playwright test
 
       - name: Upload HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-html-report
-          path: reports/html
-          if-no-files-found: ignore
+          name: playwright-report
+          path: playwright-report/
           retention-days: 14
 
-      - name: Upload test results
+      - name: Upload traces, screenshots and videos
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-test-results
-          path: test-results
-          if-no-files-found: ignore
+          name: test-results
+          path: test-results/
           retention-days: 14

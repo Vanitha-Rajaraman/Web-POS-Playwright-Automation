@@ -21,6 +21,7 @@ jobs:
       PIN: ${{ secrets.PIN }}
       ORG_NAME: ${{ secrets.ORG_NAME }}
       LOCATION_NAME: ${{ secrets.LOCATION_NAME }}
+      TERMINAL_NAME: ${{ secrets.TERMINAL_NAME }}
       RESTAURANT_ORG_NAME: ${{ secrets.RESTAURANT_ORG_NAME }}
       DINEIN_LOCATION_NAME: ${{ secrets.DINEIN_LOCATION_NAME }}
       QSR_LOCATION_NAME: ${{ secrets.QSR_LOCATION_NAME }}
@@ -38,8 +39,14 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
+      - name: Check JavaScript syntax and imports
+        run: npm run check
+
+      - name: Check shared session lifecycle offline
+        run: npm run test:framework
+
       - name: Run Playwright tests
-        run: npx playwright test
+        run: npm test
 
       - name: Upload HTML report
         if: always()

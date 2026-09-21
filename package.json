@@ -1,18 +1,25 @@
 {
   "name": "web-pos-playwright-automation",
   "version": "1.0.0",
-  "description": "Playwright + TypeScript automation framework for Pallet Lynx POS",
-  "main": "index.js",
+  "description": "Playwright + JavaScript automation framework for Pallet Lynx POS",
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug",
-    "test:ui": "playwright test --ui",
-    "test:chromium": "playwright test --project=chromium",
-    "test:firefox": "playwright test --project=firefox",
-    "test:webkit": "playwright test --project=webkit",
+    "test": "playwright test --project=chromium-grocery --project=chromium-dinein --project=chromium-qsr --project=firefox-grocery --project=firefox-dinein --project=firefox-qsr --project=webkit-grocery --project=webkit-dinein --project=webkit-qsr",
+    "test:headed": "npm test -- --headed",
+    "test:debug": "npm run test:chromium -- --debug",
+    "test:ui": "npm run test:chromium -- --ui",
+    "test:chromium": "playwright test --project=chromium-grocery --project=chromium-dinein --project=chromium-qsr",
+    "test:firefox": "playwright test --project=firefox-grocery --project=firefox-dinein --project=firefox-qsr",
+    "test:webkit": "playwright test --project=webkit-grocery --project=webkit-dinein --project=webkit-qsr",
     "report": "playwright show-report",
-    "typecheck": "tsc --noEmit"
+    "check": "node scripts/check.js",
+    "test:list": "npm test -- --list --reporter=list",
+    "test:grocery": "playwright test --project=chromium-grocery --project=firefox-grocery --project=webkit-grocery",
+    "test:parallel": "playwright test --project=parallel-tabs",
+    "test:restaurant": "playwright test --project=chromium-dinein --project=chromium-qsr --project=firefox-dinein --project=firefox-qsr --project=webkit-dinein --project=webkit-qsr",
+    "test:dinein": "playwright test --project=chromium-dinein --project=firefox-dinein --project=webkit-dinein",
+    "test:qsr": "playwright test --project=chromium-qsr --project=firefox-qsr --project=webkit-qsr",
+    "test:auth": "playwright test --project=auth",
+    "test:framework": "playwright test --project=framework --reporter=list"
   },
   "repository": {
     "type": "git",
@@ -21,7 +28,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/TwinleavesTech/web-pos-playwrite-automation/issues"
   },
@@ -29,8 +36,6 @@
   "devDependencies": {
     "@faker-js/faker": "^10.5.0",
     "@playwright/test": "^1.62.1",
-    "@types/node": "^26.1.2",
-    "dotenv": "^17.4.2",
-    "typescript": "^5.9.3"
+    "dotenv": "^17.4.2"
   }
 }

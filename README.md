@@ -1,197 +1,171 @@
 # Web POS Playwright Automation
 
-Playwright + TypeScript end-to-end framework for **Pallet Lynx** POS
-(`https://stage-pos.palletnow.co/`).
-
-## Stack
-
-- [Playwright Test](https://playwright.dev/) + TypeScript
-- [`@faker-js/faker`](https://fakerjs.dev/) for dynamic test data
-- GitHub Actions for CI
+Playwright + JavaScript end-to-end tests for Pallet Lynx POS. Source files use native ES modules and explicit relative imports with .js extensions. No TypeScript build or path-alias loader is required.
 
 ## Project structure
 
-Three domains — **grocery**, **restaurant-dinein**, **restaurant-qsr** — each
-with their own org/location/session page objects, since the onboarding flow
-diverges per domain (restaurants have an extra Access Mode step grocery
-doesn't). `LoginPage`/`BasePage` are shared by all three.
+```text
+.github/workflows/playwright.yml   CI: validation, tests, reports
+src/
+  config/env.js                    Environment configuration
+  pages/                           Shared LoginPage/BasePage and domain page objects
+    grocery/
+    restaurant-dinein/
+    restaurant-qsr/
+  fixtures/
+    domainSession.js               Shared page and lifecycle for ordered domain tests
+  api/                             API client and endpoint wrappers
+  data/                            Seeded catalog data and generated data factories
+  utils/                           Logging and UI/API comparison helpers
+tests/
+  auth/
+  grocery/                         Feature test cases matched to page-object names
+  restaurant-dinein/
+  restaurant-qsr/
+  parallel/                        Opt-in concurrent multi-tab scenario
+  suites/pos-session-sequence.spec.js               Registers grocery, dine-in, then QSR in order
+  framework/                      Offline session lifecycle checks
+scripts/check.js                   JavaScript syntax and local-import checks
+playwright.config.js              All named projects and shared settings
+jsconfig.json                     Editor JavaScript configuration
+.env.example                      Environment template
+```
 
-```
-.
-├── .github/workflows/playwright.yml   # CI pipeline (push/PR + nightly schedule)
-├── auth-setup/auth.setup.ts           # one-time login, cached as storageState
-├── src/
-│   ├── config/env.ts                  # env-driven config (URLs, credentials, org/location names)
-│   ├── api/
-│   │   ├── apiClient.ts               # authenticated APIRequestContext factory
-│   │   └── endpoints/authApi.ts       # typed API wrappers
-│   ├── pages/
-│   │   ├── LoginPage.ts               # shared
-│   │   ├── BasePage.ts                # shared
-│   │   ├── grocery/                   # OrgLocSelectionPage, SessionStartPage, CartPage
-│   │   ├── restaurant-dinein/         # same three, dine-in specific
-│   │   └── restaurant-qsr/            # same three, QSR specific
-│   ├── fixtures/                      # index.ts (shared) + one file per domain
-│   ├── data/factories/                # faker-based dynamic data builders
-│   └── utils/                         # logger, UI-vs-API validation helper
-├── tests/
-│   ├── auth/                          # login mechanics only (domain-agnostic)
-│   ├── grocery/
-│   ├── restaurant-dinein/
-│   └── restaurant-qsr/
-├── playwright.config.ts
-└── .env.example
-```
+## Which test uses which page?
+
+Page objects contain locators and UI actions. Test files contain the scenarios and assertions. A workflow can use several page objects, so there is not always one test file per screen.
+
+Feature names match their primary page object: `HoldCart.spec.js` uses `HoldCartPage.js`, and `CartProductSearch.spec.js` uses `CartProductSearchPage.js`. A suffix describes the scenario, such as order placement in `Cart.order.spec.js`.
+
+All grocery test files below are under `tests/grocery/`; grocery page objects are under `src/pages/grocery/` unless marked shared.
+
+| Test file | Main page object | Additional pages used |
+| --- | --- | --- |
+| `Login.identity.spec.js` | Shared `src/pages/LoginPage.js` | `OrganizationLocationPage.js` during shared setup; API identity validation in the test |
+| `SessionStart.spec.js` | `SessionStartPage.js` | Starts/resumes the grocery terminal session and verifies the dashboard |
+| `Cart.order.spec.js` | `CartPage.js` | Cash payment actions are currently in `CartPage.js` |
+| `CartProductSearch.spec.js` | `CartProductSearchPage.js` | `CartPage.js` opens the cart and completes the order |
+| `HoldCart.spec.js` | `HoldCartPage.js` | `CartPage.js` for product selection and payment |
+| `ClearCart.spec.js` | `ClearCartPage.js` | `CartPage.js` for product selection |
+| `Offer.spec.js` | `OfferPage.js` | `CartPage.js` for products and payment |
+| `Coupon.spec.js` | `CouponPage.js` | `CartPage.js` for products and payment |
+| `Loyalty.spec.js` | `LoyaltyPage.js` | `CartPage.js` for products and payment |
+| `Payment.methods.spec.js` | `PaymentPage.js` | `CartPage.js` for cart setup and cash payment |
+| `SessionClose.review.spec.js` | `SessionClosePage.js` | Reviews reconciliation without finalizing the close |
+| `Logout.spec.js` | Shared `src/pages/LogoutPage.js` | Shared `LoginPage.js` verifies return to login |
+
+For both `tests/restaurant-dinein/` and `tests/restaurant-qsr/`, `Login.identity.spec.js` uses shared `LoginPage.js` plus that domain's `OrganizationLocationPage.js`. `SessionStart.spec.js` uses the domain's `SessionStartPage.js` to select POS access mode and verify the terminal picker. Restaurant tests still stop before selecting a terminal. `Logout.spec.js` uses shared `LogoutPage.js`. Restaurant `CartPage.js` files are placeholders; no restaurant cart scenarios exist yet.
+
+`tests/auth/Login.spec.js` tests shared `LoginPage.js` independently. `tests/parallel/all-domains-concurrent.spec.js` uses login and onboarding pages across the three domains. `tests/framework/session-lifecycle.spec.js` checks framework behavior offline and needs no application page object.
+
+The runnable entry point is [tests/suites/pos-session-sequence.spec.js](tests/suites/pos-session-sequence.spec.js). It imports the feature `.spec.js` files in order to preserve one login and a final logout per domain. Run the domain commands below, rather than running a `.spec.js` file directly. `OrganizationLocationPage.js` replaces the abbreviated `OrgLocSelectionPage.js` name in every domain.
 
 ## Setup
 
-```bash
-npm install
-npx playwright install --with-deps
-cp .env.example .env   # fill in real values (see below)
+Use Node.js 22.13 or newer in the Node 22 release line (CI uses Node 22), or a supported newer LTS release.
+
+```powershell
+npm.cmd ci
+npx.cmd playwright install --with-deps
+Copy-Item .env.example .env
 ```
 
-### Environment variables
+Fill in your local .env. On macOS/Linux use npm/npx and cp .env.example .env. On Windows, npm.cmd/npx.cmd also work when PowerShell blocks the npm.ps1/npx.ps1 launchers.
 
-| Variable                | Purpose                                              |
-| ----------------------- | ----------------------------------------------------- |
-| `BASE_URL`              | App under test (default `https://stage-pos.palletnow.co`) |
-| `API_BASE_URL`          | Backend API host (default `https://stage-highway.palletnow.co`) |
-| `MOBILE_NUMBER`         | Seeded staging login (real account, not fake data)   |
-| `PIN`                   | 4-digit PIN for the account above                    |
-| `ORG_NAME`              | Grocery org to select during onboarding (default `Twinleaves`) |
-| `LOCATION_NAME`         | Grocery location under that org (default `Automation Testing`) |
-| `RESTAURANT_ORG_NAME`   | Restaurant org, shared by both dine-in and QSR (default `CANTEEN`) |
-| `DINEIN_LOCATION_NAME`  | Dine-in location under the restaurant org (default `Automation Testing Dine In`) |
-| `QSR_LOCATION_NAME`     | QSR location under the restaurant org (default `Automation Testing QSR`) |
+Environment variables:
 
-Locally these come from `.env` (gitignored). In CI they're read from
-**GitHub Actions secrets** of the same names — add them under
-*Settings → Secrets and variables → Actions* before the workflow can run.
+| Variable | Purpose |
+| --- | --- |
+| BASE_URL | POS URL; defaults to https://stage-pos.palletnow.co |
+| API_BASE_URL | Backend URL; defaults to https://stage-highway.palletnow.co |
+| MOBILE_NUMBER, PIN | Required seeded account credentials when login is used |
+| ORG_NAME, LOCATION_NAME, TERMINAL_NAME | Grocery organization, location, and terminal |
+| RESTAURANT_ORG_NAME | Restaurant organization |
+| DINEIN_LOCATION_NAME, QSR_LOCATION_NAME | Restaurant locations |
 
-## Running tests
+See src/config/env.js for defaults. CI reads these ten variables from GitHub Actions secrets. Catalog prerequisites and customer/manager test data are in src/data/grocery.js; randomized input builders are in src/data/factories/.
 
-```bash
-npm test                 # all browsers (chromium, firefox, webkit)
-npm run test:chromium    # single browser
-npm run test:headed      # watch it run
-npm run test:ui          # Playwright's UI mode
-npm run report           # open the last HTML report
+## Commands
+
+All suites use one configuration. The regression matrix has nine named projects: each combination of `chromium`, `firefox`, and `webkit` with `grocery`, `dinein`, and `qsr`. The utility projects are `parallel-tabs`, `auth`, and `framework`.
+
+`npm test` and CI select the nine regression projects. With `workers: 9`, Playwright can run every browser/domain combination concurrently. Tests inside each project remain serial and share one login: login → session start → domain tests → logout. Bare `npx playwright test` selects all projects, including the utility scenarios, so use the commands below or an explicit `--project` selection.
+
+```text
+npm run check            Check JavaScript syntax and local import paths
+npm run test:list        Discover regression tests without launching browsers
+npm test                 All 9 browser/domain projects in parallel
+npm run test:chromium    All domains concurrently on Chromium
+npm run test:firefox     All domains concurrently on Firefox
+npm run test:webkit      All domains concurrently on WebKit
+npm run test:grocery     Grocery concurrently on all three browsers
+npm run test:restaurant  Dine-in and QSR concurrently on all three browsers
+npm run test:dinein      Dine-in concurrently on all three browsers
+npm run test:qsr         QSR concurrently on all three browsers
+npm run test:auth        Standalone login-mechanics tests
+npm run test:framework   Offline lifecycle checks; no staging calls
+npm run test:headed      Regression tests with visible browsers
+npm run test:debug       Playwright debugger
+npm run test:ui          Playwright UI
+npm run test:parallel    Explicitly run concurrent multi-tab scenario
+npm run report          Open the default HTML report
 ```
 
-## How authentication works
+Use npm.cmd in place of npm where required on Windows. Append -- --list --reporter=list to either opt-in command to inspect its tests without executing them.
 
-Pallet Lynx's login is multi-step: mobile + PIN → select organization →
-select location → terminal/session picker. Repeating that in every test
-would be slow and brittle, so it only happens once:
+The legacy run_ordered_grocery.sh delegates to test:grocery. It creates one report, preserves Playwright's exit status, and uses the explicit registration order in tests/suites/pos-session-sequence.spec.js.
 
-1. `auth-setup/auth.setup.ts` is registered as a Playwright **setup project**
-   (see `playwright.config.ts`). It runs first, drives the real login and
-   onboarding steps, and saves the result with
-   `page.context().storageState({ path: 'playwright/.auth/user.json' })`.
-2. The `chromium`, `firefox`, and `webkit` projects declare
-   `dependencies: ['setup']` and `use: { storageState: 'playwright/.auth/user.json' }`,
-   so every test starts already authenticated.
-3. Pallet Lynx stores its whole session in **`localStorage`** (`access_token`,
-   `refresh_token`, `orgId`, `locId`, etc.) — there are no auth cookies.
-   Playwright's `storageState` captures localStorage per-origin natively, so
-   this works without any extra plumbing on the UI side.
-4. A test that needs to exercise the login form itself (e.g.
-   `tests/auth/login.spec.ts`) opts out with
-   `test.use({ storageState: { cookies: [], origins: [] } })`.
+## Authentication and isolation
 
-`playwright/.auth/` is gitignored — it contains a live token and is
-regenerated on every run.
+The custom fixture entry point is `src/fixtures/domainSession.js`. Standalone login tests import Playwright's standard `test` and `expect` and construct `new LoginPage(page)` in each test, preserving fresh per-test pages without a separate authentication fixture.
 
-## Dynamic test data
+| Fixture | Import from these tests | Behavior |
+| --- | --- | --- |
+| `src/fixtures/domainSession.js` | Grocery, dine-in, QSR, and the ordered suite | Shares one live page per domain; supplies login, organization/location, session-start, and cart page objects |
 
-Nothing is hardcoded in spec files beyond the one real seeded account.
-Per-domain factories in `src/data/factories/` build randomized, typed data
-with `@faker-js/faker` (e.g. `buildInvalidMobileNumber()`,
-`buildInvalidPin()` for negative-path tests). Add one factory file per
-page/domain as new specs are written.
+The domain fixture rejects access before setup or after logout. The cart fixture also requires `SessionStart.spec.js` to have completed. Teardown clears page-object references even if logout or context closure fails, and reports both errors if both fail. Each registered domain suite enforces serial execution and disables retries.
 
-## Validating the UI against the API
+The app currently cannot reliably resume onboarding from restored storageState: a fresh page can reach a restricted-access gate. There is no setup project or cached authentication file in the execution path.
 
-Because the app keeps its token in `localStorage` rather than cookies,
-`src/api/apiClient.ts` reads the cached `access_token` out of
-`playwright/.auth/user.json` and attaches it as a bearer token to a
-Playwright `APIRequestContext` pointed at `API_BASE_URL`.
+The default entry point is tests/suites/pos-session-sequence.spec.js. Each browser/domain project executes one of these flows:
 
-The pattern, demonstrated in each domain's `tests/*/login.spec.ts`:
+1. Grocery: one UI login and onboarding, all grocery cases on the same page, session-close review, then logout.
+2. Restaurant dine-in: one UI login and onboarding, all registered dine-in tests on that page, then logout.
+3. Restaurant QSR: one UI login and onboarding, all registered QSR tests on that page, then logout.
 
-1. Drive the UI (log in, select org/location, proceed to session).
-2. Call the equivalent backend endpoint via `authApi` (or a new endpoint
-   wrapper under `src/api/endpoints/`).
-3. Cross-check via `verifyLoginAgainstApi()` in `src/utils/apiValidation.ts`,
-   which asserts the UI-authenticated identity (mobile number, roles) matches
-   what the API independently reports, and captures both the comparison and
-   the raw API response as **report attachments** while also logging them to
-   the console (visible live in the terminal and in the HTML report's stdout
-   section).
+src/fixtures/domainSession.js owns this lifecycle. A beforeAll hook logs in once, selects the organization/location, and creates the domain page objects. `Login.identity.spec.js` validates identity, then `SessionStart.spec.js` performs the session-start steps before the remaining features. No test logs in again. The final test performs UI logout and verifies the login screen; afterAll closes the context before the next domain starts. If a failure skips the final logout test, afterAll still attempts UI logout and reports any failure. Closing a context is not treated as successful logout.
 
-Extend this by adding an endpoint wrapper per feature area and a matching
-validation helper, then call both from the corresponding spec — every new
-page/spec should include at least one such cross-check rather than only
-asserting against other UI state.
+Each domain project is serial with retries disabled. A failure skips the remaining tests in that browser/domain project while the other eight projects continue independently. `npm test` performs one login per browser/domain combination, for nine logins total. Use the provided domain commands because filtering individual features can omit the required SessionStart test.
 
-## Reporting & failure artifacts
+The regression configuration uses `workers: 9` and `fullyParallel: false`. Parallelism occurs between the nine projects; order is preserved inside each project. All projects currently read the same credentials and terminal from `.env`. If staging permits only one active session per account or terminal, concurrent runs can interfere with each other. Stable parallel CI normally requires a separate account, terminal, or isolated test data for each browser/domain project.
 
-Configured in `playwright.config.ts`:
+After each successful grocery case except logout, cleanup dismisses payment/customer screens and verifies navigation is actionable. Unexpected cleanup failures stop the serial sequence. This checks UI readiness; it does not roll back server-side orders, customers, or loyalty changes.
 
-- **Screenshots**: captured `only-on-failure`
-- **Video**: `retain-on-failure`
-- **Trace**: `retain-on-failure` (view with `npx playwright show-trace <file>`)
-- **HTML report**: written to `playwright-report/` (`npm run report` to view)
+Standalone authentication and concurrency tests are opt-in because they perform independent logins and do not follow the ordered domain lifecycle.
 
-All of the above live under the gitignored `test-results/` and
-`playwright-report/` directories locally, and are uploaded as CI artifacts
-on every run (`.github/workflows/playwright.yml`), pass or fail.
+## API validation
 
-## CI
+src/api/apiClient.js reads access_token and refresh_token from the current browser context's localStorage, then sends the backend's at/rt headers and client identity headers. It does not read a cached file or use a Bearer header. verifyLoginAgainstApi compares the UI identity with the API result and attaches its findings to the report.
 
-`.github/workflows/playwright.yml` runs:
+## Reports and CI
 
-- on every push/PR to `main`
-- manually via `workflow_dispatch`
-- **nightly at 11:00 PM IST** (`30 17 * * *` UTC) via `schedule`
+CI installs dependencies and browsers, runs npm run check and npm run test:framework, executes the ordered regression suite, and uploads HTML reports and test artifacts. It runs on main pushes/pull requests, manual dispatch, and daily at 23:00 IST (17:30 UTC). Standalone authentication and intentional concurrency are excluded from this default suite.
 
-It installs dependencies and browsers, runs the full suite, and uploads the
-HTML report and `test-results/` (traces, videos, screenshots) as workflow
-artifacts — visible under the run's **Summary** tab even when tests fail.
-Note: GitHub only fires `schedule` triggers off the workflow file as it
-exists on the default branch, so the cron won't run until this file is
-merged to `main`.
+The shared HTML report is in playwright-report/ and is replaced by the next HTML-reporting run. The framework command uses only the list reporter. Auth, concurrency, and framework projects have separate artifact folders under test-results/. Generated results and playwright/.auth/ are ignored by Git. Never commit saved authentication state. Removing a previously tracked file does not erase Git history or invalidate its tokens; invalidate any still-valid exposed credentials separately.
 
-Add all nine `secrets.*` referenced in the workflow (`BASE_URL`,
-`API_BASE_URL`, `MOBILE_NUMBER`, `PIN`, `ORG_NAME`, `LOCATION_NAME`,
-`RESTAURANT_ORG_NAME`, `DINEIN_LOCATION_NAME`, `QSR_LOCATION_NAME`) under
-*Settings → Secrets and variables → Actions* before the workflow can run.
+Playwright manages tracing using `trace: 'retain-on-failure'`. The shared-session fixture does not start or stop tracing itself. Failed-test traces are saved in the test's output directory as `trace.zip`; open one with `npx.cmd playwright show-trace <path-to-trace.zip>`. There is no custom whole-domain trace archive. The VS Code extension's **Show Trace** setting controls its trace viewer independently.
 
-## Adding a new page/flow
 
-1. Add a page object under `src/pages/<domain>/`, following the existing
-   ones (locators in the constructor, actions as methods). Add it to all
-   three domain folders if the screen is common to all of them.
-2. Add a data factory under `src/data/factories/` if the flow needs dynamic
-   input.
-3. Add an API endpoint wrapper under `src/api/endpoints/` if there's a
-   backend call to validate against, plus a validation helper in
-   `src/utils/apiValidation.ts`.
-4. Register the page object in the relevant `src/fixtures/<domain>.ts` file
-   (or `src/fixtures/index.ts` if it's shared across domains) so specs can
-   consume it via dependency injection instead of constructing it manually.
-5. Add the spec under `tests/<domain>/`.
+## Adding coverage
 
-## Known scope for this pass
+1. Add a .js page object under src/pages/<domain>/; share components when their behavior is actually common.
+2. Add seeded data or a factory when needed.
+3. Use the shared page from src/fixtures/domainSession.js to construct feature page objects.
+4. Add a .spec.js file under tests/<domain>/ that exports registerTests(), using test/expect from domainSession.js. Import and call that function in tests/suites/pos-session-sequence.spec.js before the domain's logout registration. The .spec.js files are not standalone entry points.
+5. Add API checks where they provide independent validation, and run npm run check plus npm run test:list.
 
-Page objects/tests currently cover **Login → Organization+Location select →
-(restaurant only) Access Mode → Start Day (if the location has no active
-business day) → Start-session (terminal picker) screen**. `SessionStartPage`
-automatically clicks "Start Day" when it's shown — this is a real,
-state-changing action on the shared staging environment, but a necessary one
-to reliably reach the terminal picker. Actually **starting a session on a
-terminal** (picking a specific terminal card) is a further state-changing
-step that's intentionally out of scope until specific terminals/flows are
-designated for automation — `CartPage` exists as an empty stub per domain
-for when that scope is picked up.
+Grocery coverage includes onboarding, product search, cart orders, hold/clear, offers, coupons, loyalty, payment methods, logout, and session-close review. Restaurant coverage currently includes onboarding/terminal selection and final logout; restaurant CartPage classes remain placeholders. Future restaurant cases belong before their logout registration. Session-close coverage stops before final reconciliation confirmation.
+
+Live verification is still needed for restaurant logout controls at the terminal picker. Prior exploration also recorded grocery logout becoming unresponsive after session-close review. That review now stays on the shared page as requested; if the app defect persists, the logout case fails explicitly. The framework does not reload, relogin, clear storage, or finalize reconciliation to work around it.
+
+Tests use staging and can create customers/orders, redeem loyalty, and start sessions. Use dedicated automation data and resources.

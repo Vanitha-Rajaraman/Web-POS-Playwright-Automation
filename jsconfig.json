@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "checkJs": false
+  },
+  "include": [
+    "src/**/*.js",
+    "tests/**/*.js",
+    "scripts/**/*.js",
+    "playwright*.config.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "test-results",
+    "playwright-report"
+  ]
+}

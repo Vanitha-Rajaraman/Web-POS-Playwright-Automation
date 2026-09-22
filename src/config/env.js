@@ -17,7 +17,7 @@ export const env = {
         return required('PIN');
     },
     // Grocery
-    orgName: process.env.ORG_NAME ?? 'Twinleaves',
+    orgName: process.env.ORG_NAME ?? 'TWINLEAVES',
     locationName: process.env.LOCATION_NAME ?? 'Automation Testing',
     terminalName: process.env.TERMINAL_NAME ?? 'Terminal A1',
     // Restaurant (same org, two locations: dine-in and QSR)

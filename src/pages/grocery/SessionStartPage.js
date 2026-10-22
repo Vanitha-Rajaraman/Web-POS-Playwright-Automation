@@ -35,7 +35,9 @@ export class SessionStartPage extends BasePage {
                 await this.startSession(buildOpeningCashAmount());
             }
         }
-        await expect(this.page).toHaveURL(/\/products\/homepage/, { timeout: 30000 });
+        await expect(this.page).toHaveURL(/\/(?:dashboard|products\/homepage)(?:[/?#]|$)/, { timeout: 30000 });
+        await expect(this.page.getByText('Home', { exact: true })).toBeVisible();
+        await expect(this.page.getByText('Cart', { exact: true })).toBeVisible();
     }
     terminalCard(terminalName) {
         return this.page.getByText(terminalName, { exact: true });
@@ -56,7 +58,7 @@ export class SessionStartPage extends BasePage {
         await Promise.race([
             this.startDayButton.waitFor({ state: 'visible' }),
             this.title.waitFor({ state: 'visible' }),
-            this.page.waitForURL(/\/products\/homepage/),
+            this.page.waitForURL(/\/(?:dashboard|products\/homepage)(?:[/?#]|$)/),
         ]);
         if (await this.startDayButton.isVisible().catch(() => false)) {
             await this.startDayButton.click();
@@ -77,7 +79,7 @@ export class SessionStartPage extends BasePage {
         await this.terminalCard(terminalName).click();
         await Promise.race([
             this.systemHealthTitle.waitFor({ state: 'visible' }),
-            this.page.waitForURL(/\/products\/homepage/),
+            this.page.waitForURL(/\/(?:dashboard|products\/homepage)(?:[/?#]|$)/),
         ]);
     }
     async isAtOpeningCashScreen() {
@@ -87,6 +89,6 @@ export class SessionStartPage extends BasePage {
     async startSession(openingCashAmount) {
         await this.openingCashInput.fill(openingCashAmount);
         await this.startSessionButton.click();
-        await this.page.waitForURL(/\/products\/homepage/);
+        await this.page.waitForURL(/\/(?:dashboard|products\/homepage)(?:[/?#]|$)/);
     }
 }

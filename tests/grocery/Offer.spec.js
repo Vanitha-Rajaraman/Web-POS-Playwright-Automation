@@ -33,15 +33,19 @@ export function registerTests() {
               const getProductResult = offerPage.productResult(result, groceryData.offer.getProduct.barcode);
               expect(buyProductResult, 'buy product should be present in the offer-apply response').toBeDefined();
               expect(getProductResult, 'get product should be present in the offer-apply response').toBeDefined();
-              expect(buyProductResult.offerApplied).toBe(true);
+              // BUY X qualifies the offer; only GET Y receives the discount.
+              expect(buyProductResult.offerValue).toBe(0);
+              expect(buyProductResult.sellingPrice).toBeGreaterThan(0);
               expect(getProductResult.offerApplied).toBe(true);
               // The BUY X GET Y offer discounts the get product to ₹0 (100% off).
               expect(getProductResult.sellingPrice).toBe(0);
               expect(getProductResult.offerValue).toBeGreaterThan(0);
+              expect(Number(result.appliedOffer)).toBe(getProductResult.offerValue);
               logger.info(`Offer applied — get product (${getProductResult.gtin}) discounted to ₹${getProductResult.sellingPrice} ` +
                   `(offerValue ₹${getProductResult.offerValue}, API status: ${result.status})`);
           });
           await test.step('Place the order (cash)', async () => {
+              await offerPage.finishApplyingOffers();
               await cartPage.placeOrderWithCash();
               await expect(cartPage.paymentSuccessHeading).toBeVisible();
               logger.info('Order placed successfully with BUY X GET Y offer applied');

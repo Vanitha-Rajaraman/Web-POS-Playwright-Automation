@@ -12,6 +12,8 @@ export class OfferPage extends BasePage {
         this.applyOfferButton = page.getByRole('button', { name: 'Apply Offer', exact: true });
         this.offersHeading = page.getByRole('heading', { name: 'Offers', exact: true, level: 1 });
         this.closeButton = page.getByRole('button', { name: 'Close', exact: true });
+        this.proceedWithoutOfferButton = page.getByRole('button', { name: 'Proceed without offer', exact: true });
+        this.payAndPrintButton = page.getByRole('button', { name: /^Pay & Print/i });
     }
     /** Opens the read-only "Offers (F10)" drawer listing configured offer rules for the current cart. */
     async open() {
@@ -52,5 +54,13 @@ export class OfferPage extends BasePage {
     /** The apply-offer result for one cart line, found by its barcode (gtin) — for per-product assertions. */
     productResult(result, barcode) {
         return result.cartProducts.find((p) => p.gtin === barcode);
+    }
+    /** Acknowledge remaining undiscounted lines after validating the applied offer. */
+    async finishApplyingOffers() {
+        await this.proceedWithoutOfferButton.or(this.payAndPrintButton).first().waitFor({ state: 'visible', timeout: 15000 });
+        if (await this.proceedWithoutOfferButton.isVisible()) {
+            await this.proceedWithoutOfferButton.click();
+        }
+        await this.payAndPrintButton.waitFor({ state: 'visible', timeout: 15000 });
     }
 }

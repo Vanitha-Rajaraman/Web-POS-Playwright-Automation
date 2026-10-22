@@ -26,13 +26,14 @@ export class CartPage extends BasePage {
         this.finalPayButton = page.getByRole('button', { name: /^\(F2\) PAY/i });
         this.paymentSuccessHeading = page.getByRole('heading', { name: 'Payment Successful!' });
     }
-    /** Returns to home and dismisses overlays before the next shared-session test. */
+    /** Leaves order completion and dismisses overlays before the next shared-session test. */
     async prepareForNextTest() {
         const goHome = this.page.getByRole('button', { name: /Go to Home/i });
         if (/\/order-completed/.test(this.page.url()) || await goHome.isVisible()) {
             await goHome.click({ timeout: 10000 });
         }
-        await expect(this.page).toHaveURL(/\/products\/homepage/, { timeout: 15000 });
+        // The current app returns to the cart after payment; older builds return home.
+        await expect(this.page).toHaveURL(/\/(?:dashboard|grocery\/cart|products\/homepage)(?:[/?#]|$)/, { timeout: 15000 });
         const skip = this.skipCustomerButton;
         try {
             await skip.waitFor({ state: 'visible', timeout: 5000 });
@@ -47,7 +48,7 @@ export class CartPage extends BasePage {
         await this.cartNavLabel.click({ trial: true, timeout: 5000 });
     }
     async isLoaded() {
-        return /\/products\/homepage/.test(this.page.url());
+        return /\/(?:dashboard|products\/homepage)(?:[/?#]|$)/.test(this.page.url());
     }
     /** Opens a fresh cart from the bottom nav, dismissing the "Add customer to this order" prompt it triggers. */
     async openCart() {
